@@ -25,6 +25,7 @@ local cjson = require "cjson"
 local utils = require "lib/utils"
 local request = require "lib/request"
 local redis = require "lib/redis"
+local profiler = require "lib/profiler"
 local url = require "url"
 -- load policies
 local security = require "policies/security"
@@ -39,6 +40,7 @@ local _M = {}
 
 --- Main function that handles parsing of invocation details and carries out implementation
 function _M.processCall()
+  profiler:start()
   -- Get resource object from redis
   local red = redis.init(REDIS_HOST, REDIS_PORT, REDIS_PASS, 10000)
   local resourceKeys = redis.getAllResourceKeys(red, ngx.var.tenant)
@@ -79,6 +81,8 @@ function _M.processCall()
       break
     end
   end
+  profiler:stop()
+  profiler:writeReport("/etc/api-gateway/profile_report.txt")
   if found == false then
     request.err(404, 'Whoops. Verb not supported.')
   end
