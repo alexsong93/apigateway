@@ -88,12 +88,16 @@ function _M.processCall(dataStore)
       -- Set backend upstream and uri
       backendRouting.setRoute(opFields.backendUrl, gatewayPath)
       -- Set gateway url as request header
-      local requestScheme = ngx.req.get_headers()["X-Forwarded-Proto"]
+      local requestScheme = ngx.req.get_headers()["X-External-Proto"]
       if requestScheme == nil or requestScheme == "" then
         requestScheme = ngx.var.scheme
       end
-      local requestUrl = utils.concatStrings({requestScheme, "://", ngx.var.host})
-      local prefix = ngx.req.get_headers()["X-Forwarded-Prefix"]
+      local requestHost = ngx.req.get_headers()["X-External-Host"]
+      if requestHost == nil or requestHost == "" then
+        requestHost = ngx.var.host
+      end
+      local requestUrl = utils.concatStrings({requestScheme, "://", requestHost})
+      local prefix = ngx.req.get_headers()["X-External-Prefix"]
       if prefix ~= nil and prefix ~= "" then
         requestUrl = utils.concatStrings({requestUrl, prefix})
       end
