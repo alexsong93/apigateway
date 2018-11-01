@@ -31,6 +31,7 @@ local security = require "policies/security"
 local mapping = require "policies/mapping"
 local rateLimit = require "policies/rateLimit"
 local backendRouting = require "policies/backendRouting"
+local websocket = require "lib/websocket"
 local cors = require "cors"
 local OPTIMIZE = os.getenv("OPTIMIZE")
 
@@ -73,7 +74,8 @@ function _M.processCall(dataStore)
   ngx.var.tenantInstance = obj.tenantInstance
   ngx.var.apiId = obj.apiId
   for verb, opFields in pairs(obj.operations) do
-    if string.upper(verb) == ngx.req.get_method() then
+    logger.debug(ngx.req.get_method())
+    if string.upper(verb) == ngx.req.get_method() or obj.websocket == 'true' then
       -- Check if auth is required
       local key
       if (opFields.security) then
@@ -108,6 +110,11 @@ function _M.processCall(dataStore)
       -- Log updated request headers/body info to access logs
       if ngx.req.get_headers()["x-debug-mode"] == "true" then
         setRequestLogs()
+      end
+      -- websocket support
+      logger.debug(opFields.backendUrl)
+      if obj.websocket == 'true' then
+        websocket.setup(opFields.backendUrl)
       end
       dataStore:close()
       return nil
