@@ -90,7 +90,7 @@ function v2GetSubscriptions(dataStore)
     request.err(400, "Missing artifact_id")
   end
   local subscriptionList = subscriptions.getSubscriptions(dataStore, artifactId, tenantId)
-  redis.close(red)
+  dataStore:close()
   ngx.header.content_type = "application/json; charset=utf-8"
   request.success(200, cjson.encode(subscriptionList))
 end
@@ -109,7 +109,7 @@ function v2DeleteSubscription(dataStore)
   if res == false then
     request.err(404, "Subscription doesn't exist")
   end
-  redis.close(red)
+  dataStore:close()
   request.success(204)
 end
 

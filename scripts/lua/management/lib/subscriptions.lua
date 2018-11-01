@@ -25,7 +25,7 @@ local _M = {}
 
 function _M.addSubscription(dataStore, artifactId, tenantId, clientId, clientSecret, hashFunction)
   local subscriptionKey = utils.concatStrings({"subscriptions:tenant:", tenantId, ":api:", artifactId})
-  dataStore:setSnapshotId(tenantId)
+  --dataStore:setSnapshotId(tenantId)
   if clientSecret ~= nil then
     if hashFunction == nil then
       hashFunction = utils.hash
@@ -38,7 +38,7 @@ function _M.addSubscription(dataStore, artifactId, tenantId, clientId, clientSec
 end
 
 function _M.getSubscriptions(dataStore, artifactId, tenantId)
-  dataStore:setSnapshotId(tenantId)
+  --dataStore:setSnapshotId(tenantId)
   return dataStore:getSubscriptions(artifactId, tenantId)
 end
 

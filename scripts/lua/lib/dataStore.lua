@@ -159,7 +159,7 @@ end
 
 function DataStore:getSubscriptions(artifactId, tenantId)
   self:singleInit()
-  return self.impl.deleteSubscription(self.ds, key, self.snapshotId)
+  return self.impl.getSubscriptions(self.ds, artifactId, tenantId, self.snapshotId)
 end
 
 function DataStore:healthCheck()

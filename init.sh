@@ -25,13 +25,6 @@ if [ "${DECRYPT_REDIS_PASS}" == "true" ]; then
     export REDIS_PASS=$(printf "${REDIS_PASS}\n" | openssl enc -d -K ${ENCRYPTION_KEY} -iv ${ENCRYPTION_IV} -aes-256-cbc -base64)
 fi
 
-sleep_duration=${MARATHON_POLL_INTERVAL:-5}
-# location for a remote /etc/api-gateway folder.
-# i.e s3://api-gateway-config
-remote_config=${REMOTE_CONFIG}
-remote_config_sync_interval=${REMOTE_CONFIG_SYNC_INTERVAL:-10s}
-remote_config_reload_cmd=${REMOTE_CONFIG_RELOAD_CMD:-api-gateway -s reload}
-
 echo "Starting api-gateway ..."
 if [ "${debug_mode}" == "true" ]; then
     echo "   ...  in DEBUG mode "
@@ -42,20 +35,26 @@ fi
 /usr/local/sbin/api-gateway -V
 echo "------"
 
-sync_cmd="echo ''" # when left empty, the config supervisor would only watch /etc/api-gateway for changes
-if [[ -n "${remote_config}" ]]; then
-    echo "   ... using configuration from: ${remote_config}"
-    sync_cmd="rclone sync ${remote_config} /etc/api-gateway/"
+sync_config=${SYNC_CONFIG}
+remote_config=${REMOTE_CONFIG} # location for a remote /etc/api-gateway folder. i.e s3://api-gateway-config
+remote_config_sync_interval=${REMOTE_CONFIG_SYNC_INTERVAL:-10s}
+remote_config_reload_cmd=${REMOTE_CONFIG_RELOAD_CMD:-api-gateway -s reload}
+if [ "${sync_config}" == "true" ]; then
+    sync_cmd="echo ''" # when left empty, the config supervisor would only watch /etc/api-gateway for changes
+    if [[ -n "${remote_config}" ]]; then
+        echo "   ... using configuration from: ${remote_config}"
+        sync_cmd="rclone sync ${remote_config} /etc/api-gateway/"
+    fi
+    api-gateway-config-supervisor \
+        --reload-cmd="${remote_config_reload_cmd}" \
+        --sync-folder=/etc/api-gateway \
+        --sync-interval=${remote_config_sync_interval} \
+        --sync-cmd="${sync_cmd}" \
+        --http-addr=127.0.0.1:8888 &
 fi
 
-api-gateway-config-supervisor \
-    --reload-cmd="${remote_config_reload_cmd}" \
-    --sync-folder=/etc/api-gateway \
-    --sync-interval=${remote_config_sync_interval} \
-    --sync-cmd="${sync_cmd}" \
-    --http-addr=127.0.0.1:8888 &
-
-echo resolver $(awk 'BEGIN{ORS=" "} /^nameserver/{print $2}' /etc/resolv.conf | sed "s/ $/;/g") > /etc/api-gateway/conf.d/includes/resolvers.conf
+#echo resolver $(awk 'BEGIN{ORS=" "} /^nameserver/{print $2}' /etc/resolv.conf | sed "s/ $/;/g") > /etc/api-gateway/conf.d/includes/resolvers.conf
+echo "resolver 8.8.8.8;" > /etc/api-gateway/conf.d/includes/resolvers.conf
 echo "   ...  with dns $(cat /etc/api-gateway/conf.d/includes/resolvers.conf)"
 
 echo "   ... testing configuration "
